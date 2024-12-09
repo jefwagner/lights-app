@@ -1,0 +1,13 @@
+[Unit]
+Description=Christmas Lights Controller
+After=syslog.target
+
+[Service]
+Type=Idle
+ExecStart=/opt/lights-app/bin/lights-app
+WorkingDirectory=/opt/lights-app/
+Restart=always
+RestartSec=60
+
+[Install]
+WantedBy=multi-user.target
