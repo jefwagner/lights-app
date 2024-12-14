@@ -4,11 +4,11 @@ from fastapi.staticfiles import StaticFiles
 
 app = FastAPI()
 
-app.mount("/assets", StaticFiles(directory="dist/assets"), name="assets")
+app.mount("/assets", StaticFiles(directory="frontend/dist/assets"), name="assets")
 
 @app.get("/", response_class=HTMLResponse)
 async def root():
-    with open("dist/index.html", "r") as f:
+    with open("frontend/dist/index.html", "r") as f:
         return f.read()
 
 @app.get("/params", response_class=ORJSONResponse)
