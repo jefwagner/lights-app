@@ -25,6 +25,6 @@ pub async fn shutdown_signal(handle: Handle, remote: LightsRemote) {
     }
 
     info!("Received termination signal shutting down");
-    let _ = remote.send(LightsCommand::Off).await;
+    let _ = remote.send(LightsCommand::Stop).await;
     handle.graceful_shutdown(Some(Duration::from_secs(10)));
 }

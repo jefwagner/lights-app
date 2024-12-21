@@ -17,6 +17,9 @@ pub use redirect::redirect_http_to_https;
 mod shutdown;
 pub use shutdown::shutdown_signal;
 
+mod websocket;
+pub use websocket::ws_handler;
+
 mod main_app;
 
 /// start the web-app by starting the web-server

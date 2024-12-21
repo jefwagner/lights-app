@@ -12,6 +12,10 @@ use axum::{
     BoxError,
 };
 
+const ADDR: &'static str = if cfg!(debug_assertions) { "127.0.0.1" } else { "0.0.0.0" };
+const HTTP_PORT: &'static str = if cfg!(debug_assertions) { "8080" } else { "80" };
+const HTTPS_PORT: &'static str = if cfg!(debug_assertions) { "8443" } else { "443" };
+
 pub async fn redirect_http_to_https<F>(signal: F) -> Result<()> 
 where 
     F: Future<Output = ()> + Send + 'static
@@ -25,7 +29,7 @@ where
             parts.path_and_query = Some("/".parse().unwrap());
         }
 
-        let https_host = host.replace("80", "443");
+        let https_host = host.replace(HTTP_PORT, HTTPS_PORT);
         parts.authority = Some(https_host.parse()?);
 
         Ok(Uri::from_parts(parts)?)
@@ -41,8 +45,9 @@ where
     };
 
     // let addr = SocketAddr::from(([127, 0, 0, 1], ports.http));
-    debug!("Starting redirect servce from http port 80 to https port 443");
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:80").await.unwrap();
+    let addr = ADDR.to_string() + ":" + HTTP_PORT;
+    debug!("Starting redirect servce on {ADDR} from http port {HTTP_PORT} to https port {HTTPS_PORT}");
+    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, redirect.into_make_service())
     .with_graceful_shutdown(signal)
     .await

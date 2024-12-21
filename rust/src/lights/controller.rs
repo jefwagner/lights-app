@@ -1,4 +1,4 @@
-use std::iter::zip;
+use std::{iter::zip, future::Future};
 use anyhow::Result;
 use tokio::sync::mpsc;
 #[allow(unused_imports)]
@@ -40,14 +40,19 @@ impl LightsRemote {
     }
 }
 
-pub struct LightsController {
+pub trait LightsController {
+    fn new(config: DriverConfig, receiver: mpsc::Receiver<LightsCommand>) -> impl LightsController;
+    fn start(&mut self) -> impl Future<Output = Result<()>>;        
+}
+
+pub struct RealLightsController {
     config: DriverConfig,
     receiver: mpsc::Receiver<LightsCommand>,
     state: Vec<LedColor>,
 }
 
-impl LightsController {
-    pub fn new(config: DriverConfig, receiver: mpsc::Receiver<LightsCommand>) -> Self {
+impl LightsController for RealLightsController {
+    fn new(config: DriverConfig, receiver: mpsc::Receiver<LightsCommand>) -> impl LightsController {
         let mut default_colors: Vec<LedColor> = Vec::with_capacity(config.left + config.right);
         let red: LedColor = [128, 0, 0].into();
         let green: LedColor = [0, 128, 0].into();
@@ -68,11 +73,11 @@ impl LightsController {
         //         default_colors.push(green);
         //     }
         // }
-        LightsController { config, receiver, state: default_colors }
+        RealLightsController { config, receiver, state: default_colors }
     }
 
     /// Consume the controller and start a loop to control the lights based on MPSC messages
-    pub async fn start(&mut self) -> Result<()> {
+    async fn start(&mut self) -> Result<()> {
         debug!("Starting lights controller");
         let mut driver = LedDriver::new(self.config)?;
         for (state_led, led) in zip(self.state.iter(), driver.iter()) {
@@ -121,10 +126,76 @@ impl LightsController {
                         *led = (*state_led).into()
                     }
                     driver.controller.render()?;
+                    self.config = config;
                 }
                 LightsCommand::Stop => {
                     debug!("Stopping lights controller");
                     driver.clear()?;
+                    break
+                },
+            }
+        }
+        Ok(())
+    }
+}
+
+pub struct FakeLightsController {
+    config: DriverConfig,
+    receiver: mpsc::Receiver<LightsCommand>,
+    state: Vec<LedColor>,
+}
+
+impl LightsController for FakeLightsController {
+    fn new(config: DriverConfig, receiver: mpsc::Receiver<LightsCommand>) -> impl LightsController {
+        let mut default_colors: Vec<LedColor> = Vec::with_capacity(config.left + config.right);
+        let red: LedColor = [128, 0, 0].into();
+        let green: LedColor = [0, 128, 0].into();
+        let white: LedColor = [96, 96, 64].into();
+        for i in 0..(config.left + config.right) {
+            if i%3 == 0 {
+                default_colors.push(red);
+            } else if i%3 == 1 {
+                default_colors.push(green);
+            } else if i%3 == 2 {
+                default_colors.push(white);
+            }
+        }
+        FakeLightsController { config, receiver, state: default_colors }
+    }
+
+    /// Consume the controller and start a loop to control the lights based on MPSC messages
+    async fn start(&mut self) -> Result<()> {
+        debug!("Starting dev lights controller");
+        while let Some(cmd) = self.receiver.recv().await {
+            match cmd {
+                LightsCommand::Off => {
+                    debug!("Turning lights off");
+                },
+                LightsCommand::On => {
+                    debug!("Turning lights on");
+                },
+                LightsCommand::Fill(color) => {
+                    debug!("Setting all lights to color: (r:{}, g:{}, b:{})", color.r, color.g, color.b);
+                    for state_led in self.state.iter_mut() {
+                        *state_led = color;
+                    }
+                },
+                LightsCommand::SetSingle(index, color ) => {
+                    debug!("Setting light number {} to color: (r:{}, g:{}, b:{})", index, color.r, color.g, color.b);
+                    self.state[index] = color;
+                },
+                LightsCommand::Set(colors) => {
+                    debug!("Setting lights to received colors");
+                    for (state_led, color) in zip(self.state.iter_mut(), colors) {
+                        *state_led = color;
+                    }
+                },
+                LightsCommand::ChangeConfig(config) => {
+                    debug!("Making new config");
+                    self.config = config;
+                }
+                LightsCommand::Stop => {
+                    debug!("Stopping lights controller");
                     break
                 },
             }

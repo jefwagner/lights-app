@@ -162,7 +162,7 @@ Check out the readme file in rust directory for more details.
 ## Frontend
 
 The frontend was created with
-[Vite+Vue+Tailwindcss](https://tailwindcss.com/docs/guides/vite#vue) and builds
+[Vite+React+Tailwindcss](https://tailwindcss.com/docs/guides/vite#react) and builds
 a static site that is then served by the axum web server.
 
 Check out the readme file in the frontend directory for more details.

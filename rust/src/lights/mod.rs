@@ -12,6 +12,11 @@ pub use driver::DriverConfig;
 mod controller;
 pub use controller::{LightsCommand, LightsRemote, LightsController};
 
+#[cfg(debug_assertions)]
+use controller::FakeLightsController;
+#[cfg(not(debug_assertions))]
+use controller::RealLightsController;
+
 /// Create a remote and controller task
 /// 
 /// This creates a controller for the lights. The controller owns the driver that
@@ -20,12 +25,20 @@ pub use controller::{LightsCommand, LightsRemote, LightsController};
 /// 
 /// The remote is a wrapper around an MPSC sender for sending commands to the
 /// controller and is cloneable and safe to use in multiple threads.
-pub fn new_lights(config: DriverConfig) -> (LightsRemote, LightsController) {
+#[cfg(debug_assertions)]
+pub fn new_lights(config: DriverConfig) -> (LightsRemote, impl LightsController) {
     trace!("Creating the lights remote and controller");
     let (sender, receiver) = mpsc::channel(10);
     let remote = LightsRemote::new(sender);
-    let controller = LightsController::new(config, receiver);
+    let controller = FakeLightsController::new(config, receiver);
     (remote, controller)
 }
 
-
+#[cfg(not(debug_assertions))]
+pub fn new_lights(config: DriverConfig) -> (LightsRemote, impl LightsController) {
+    trace!("Creating the lights remote and controller");
+    let (sender, receiver) = mpsc::channel(10);
+    let remote = LightsRemote::new(sender);
+    let controller = RealLightsController::new(config, receiver);
+    (remote, controller)
+}

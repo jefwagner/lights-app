@@ -8,6 +8,7 @@ pub struct LedColor {
     pub b: u8,
 }
 
+// quick maps from #,#,# to LedColor
 impl From<(u8, u8, u8)> for LedColor {
     fn from(value: (u8, u8, u8)) -> Self {
         LedColor{ r: value.0, g: value.1, b: value.2 }
@@ -20,6 +21,7 @@ impl From<[u8; 3]> for LedColor {
     }
 }
 
+// map from 
 impl Into<[u8; 4]> for LedColor {
     fn into(self) -> [u8; 4] {
         [self.b, self.r, self.g, 0]

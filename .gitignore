@@ -22,6 +22,9 @@ frontend/dist-ssr
 *.key
 *.crt
 
+# Any and all secrets
+**/secrets/
+
 # Editor directories and files
 **/.vscode/
 **/!.vscode/extensions.json

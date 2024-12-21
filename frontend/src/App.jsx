@@ -11,7 +11,6 @@ function App() {
     selected: "bar",
     parameters: {},
   });
-  const [onOff, setOnOff] = useState(false);
 
   let connData = {
     mode: import.meta.env.MODE,
@@ -28,7 +27,7 @@ function App() {
       <h1 className="text-3xl font-bold bg-cyan-700 rounded-lg">
           Christmas Lights
       </h1>
-      <MainToggle left="Off" right="On" appData={appData} setAppData={setAppData} />
+      <MainToggle appData={appData} setAppData={setAppData} />
       <ModeSelect appData={appData} setAppData={setAppData} />
       <h2 className="text-xl font-bold">State</h2>
       <p>{ appData.onOff? "on": "off" }</p>

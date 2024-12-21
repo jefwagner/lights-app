@@ -19,7 +19,7 @@ pub struct DriverConfig {
     pub left: usize,
     /// number of lights in the right strip (GPIO 13 - Pin 33)
     pub right: usize,
-    /// Not - maybe max overall brightness?
+    /// maybe max overall brightness?
     pub brightness: u8,
 }
 

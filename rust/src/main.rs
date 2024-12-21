@@ -5,11 +5,13 @@ use log::{trace, debug, info, warn, error};
 mod mylog;
 
 mod lights;
-use lights::{DriverConfig, new_lights};
-
-mod webapp;
+use lights::{DriverConfig, new_lights, LightsController};
 
 mod mode;
+
+mod state;
+
+mod webapp;
 
 #[tokio::main]
 async fn main() {
