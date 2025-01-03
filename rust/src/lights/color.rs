@@ -1,7 +1,7 @@
 use serde::{Serialize, Deserialize, Deserializer};
 
 /// LED light color
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub struct LedColor {
     pub r: u8,
     pub g: u8,

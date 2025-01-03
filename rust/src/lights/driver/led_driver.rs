@@ -1,7 +1,6 @@
 use std::ops::{Index, IndexMut};
 #[allow(unused_imports)]
 use log::{trace, debug, info, warn, error};
-
 use anyhow::{Context, Result};
 use rs_ws281x::{
     ChannelBuilder,
@@ -10,18 +9,7 @@ use rs_ws281x::{
     StripType,
 };
 
-use super::LedColor;
-
-/// Configuration for the lights
-#[derive(Copy, Clone)]
-pub struct DriverConfig {
-    /// number of lights in the left strip (GPIO 12 - Pin 32)
-    pub left: usize,
-    /// number of lights in the right strip (GPIO 13 - Pin 33)
-    pub right: usize,
-    /// maybe max overall brightness?
-    pub brightness: u8,
-}
+use super::{DriverConfig, LedColor, LedIterator, SetColors};
 
 /// Driver object for the ws281x lights
 pub struct LedDriver {
@@ -61,6 +49,11 @@ impl LedDriver {
         })
     }
 
+    /// Total number of LEDs on both strands
+    pub fn size(&self) -> usize {
+        self.sizes.0 + self.sizes.1
+    }
+
     /// Create a mutable iterator for the LEDS
     pub fn iter(&mut self) -> LedIterator {
         LedIterator{ lc: self, index: 0 }
@@ -80,6 +73,10 @@ impl LedDriver {
         for led in self.iter() {
             *led = color;
         }
+        Ok(self.controller.render()?)
+    }
+
+    pub fn render(&mut self) -> Result<()> {
         Ok(self.controller.render()?)
     }
 }
@@ -109,12 +106,6 @@ impl IndexMut<usize> for LedDriver {
             &mut self.controller.leds_mut(1)[index-mid-1]
         }
     }
-}
-
-/// Iterator object for the Lights Driver
-pub struct LedIterator<'a> {
-    lc: &'a mut LedDriver,
-    index: usize,
 }
 
 impl<'a> Iterator for LedIterator<'a> {

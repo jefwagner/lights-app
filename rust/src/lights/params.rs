@@ -3,7 +3,7 @@ use serde::{Serialize, Deserialize};
 use crate::lights::LedColor;
 
 /// An input or adjustable parameter for a lights mode
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Param{
     /// The parameter name
@@ -16,7 +16,7 @@ pub struct Param{
 }
 
 /// The parameter value that returned by the web-app front-end
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase", tag="type", content="value")]
 pub enum Value{
     /// A sliding on-off toggle
@@ -30,7 +30,7 @@ pub enum Value{
 }
 
 /// The parameters metadata used by the front-end to render the widget
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase", untagged)]
 pub enum Meta {
     /// A sliding on-off toggle
@@ -50,41 +50,61 @@ mod test {
 
     // quick tests with 'partial compile' that lets me see what's going on
     #[test]
-    fn foo() {
+    fn param_serialize() {
         let x = Param{ 
             name: "foo".into(),
             value: Value::Range(50),
             meta: Some(Meta::Range { min: 0, max: 100 }),
         };
-        eprintln!("{}", serde_json::to_string(&x).unwrap());
-        assert!(false);
+        let expected = r#"{"name":"foo","type":"range","value":50,"meta":{"min":0,"max":100}}"#;
+        assert_eq!(
+            serde_json::to_string(&x).unwrap().as_str(),
+            expected
+        );
     }
 
     #[test]
-    fn bar() {
-        let x = r#" {"name":"bar", "type": "range", "value":50}"#;
-        let y: Param = serde_json::from_str(x).unwrap();
-        eprintln!("{y:?}");
-        assert!(false);
+    fn param_deserialize() {
+        let expected = Param {
+            name: "bar".into(),
+            value: Value::Range(50),
+            meta: None,
+        };
+        let input_str = r#" {"name":"bar", "type": "range", "value":50}"#;
+        let input: Param = serde_json::from_str(input_str).unwrap();
+        assert_eq!(
+            input,
+            expected
+        );
     }
 
     #[test]
-    fn baz() {
+    fn param_serialize_color() {
         let x = Param{ 
             name: "baz".into(),
             value: Value::Color(LedColor { r: 255, g: 127, b: 0 }),
             meta: Some(Meta::Color),
         };
-        eprintln!("{}", serde_json::to_string(&x).unwrap());
-        assert!(false);
+        let expected = r##"{"name":"baz","type":"color","value":"#ff7f00","meta":null}"##;
+        assert_eq!(
+            serde_json::to_string(&x).unwrap().as_str(),
+            expected
+        );
     }
 
     #[test]
-    fn buz() {
-        let x = r##"{"name":"bar", "type": "color", "value":"#123456"}"##;
-        let y: Param = serde_json::from_str(x).unwrap();
-        eprintln!("{y:?}");
-        assert!(false);
+    fn parame_deserialize_color() {
+        let expected = Param { 
+            name: "bar".into(), 
+            value: Value::Color(LedColor { r: 18, g: 52, b: 86 }), 
+            meta: None 
+        };
+        let input_str = r##"{"name":"bar", "type": "color", "value":"#123456"}"##;
+        let input: Param = serde_json::from_str(input_str).unwrap();
+        assert_eq!(
+            input,
+            expected
+        );
     }
 
 }

@@ -3,6 +3,7 @@ rpi-ws281x-rust/
 
 # Rust build artifacts
 rust/target/
+rust/*_old/
 
 # Logs
 frontend/logs

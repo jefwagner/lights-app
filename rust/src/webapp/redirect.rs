@@ -12,9 +12,12 @@ use axum::{
     BoxError,
 };
 
-const ADDR: &'static str = if cfg!(debug_assertions) { "127.0.0.1" } else { "0.0.0.0" };
+/// The address for the webserver redirect
+pub const ADDR: &'static str = if cfg!(debug_assertions) { "127.0.0.1" } else { "0.0.0.0" };
+/// The insecure (http) port
 const HTTP_PORT: &'static str = if cfg!(debug_assertions) { "8080" } else { "80" };
-const HTTPS_PORT: &'static str = if cfg!(debug_assertions) { "8443" } else { "443" };
+/// The secure (https) port
+pub const HTTPS_PORT: &'static str = if cfg!(debug_assertions) { "8443" } else { "443" };
 
 pub async fn redirect_http_to_https<F>(signal: F) -> Result<()> 
 where 
@@ -44,9 +47,8 @@ where
         }
     };
 
-    // let addr = SocketAddr::from(([127, 0, 0, 1], ports.http));
     let addr = ADDR.to_string() + ":" + HTTP_PORT;
-    debug!("Starting redirect servce on {ADDR} from http port {HTTP_PORT} to https port {HTTPS_PORT}");
+    info!("Starting redirect servce on {ADDR} from http port {HTTP_PORT} to https port {HTTPS_PORT}");
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, redirect.into_make_service())
     .with_graceful_shutdown(signal)

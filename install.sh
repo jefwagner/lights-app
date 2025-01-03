@@ -4,6 +4,7 @@
 mkdir -p /opt/lights-app/bin
 mkdir -p /opt/lights-app/secrets
 mkdir -p /opt/lights-app/www
+mkdir -p /opt/lights-app/settings
 
 # Copy over the back-end executable
 cp rust/target/release/lights-app /opt/lights-app/bin/

@@ -1,44 +1,58 @@
-use log::LevelFilter;
+use std::time::Duration;
+use tokio::sync::{mpsc, watch};
 #[allow(unused_imports)]
 use log::{trace, debug, info, warn, error};
+use log::LevelFilter;
 
 mod mylog;
-
+mod appstate;
+use appstate::{AppState, AppStateChange};
 mod lights;
-use lights::{DriverConfig, new_lights, LightsController};
-
-mod mode;
-
-mod state;
-
+use lights::{
+    LightsController, 
+    modes::{
+        SetDriver,
+    }
+};
 mod webapp;
+
+const CHANNEL_SIZE: usize = 10;
 
 #[tokio::main]
 async fn main() {
-    // initilize logging
-    if let Err(e) = mylog::init_log(LevelFilter::Debug) {
+    // initilize logging 
+    // - swap log_level define if you need to override default filter level
+    // let log_level = if cfg!(debug_assertions) { LevelFilter::Info } else { LevelFilter::Debug };
+    let log_level = LevelFilter::Debug;
+    if let Err(e) = mylog::init_log(log_level) {
         eprintln!("Unable to initialize logging: {e:?}");
     }
+ 
+    // create the watch (single producer, multiple consumer) ipc channel. This is
+    // for the light controller to send updates to the webapp websocket clients
+    let (state_tx, start_rx) = watch::channel(AppState::init());
+    // create the multipel producer, single consumer ipc channel. This is for the 
+    // websocket clients to send commands to the lights controller
+    let (cmd_tx, cmd_rx) = mpsc::channel::<AppStateChange>(CHANNEL_SIZE);
 
-    // create lights object as part of our state
-    let config = DriverConfig {left: 100, right: 300, brightness: 255};
-    let (lights_remote, mut lights_controller) = new_lights(config);
+    let (mut lights_controller, mut lights_modes) = LightsController::new(state_tx, cmd_rx).expect("foo");
+    lights_modes.register(SetDriver::new());
 
     // create handle for the axum server
     let app_handle = axum_server::Handle::new();
-    // create the signal handler
-    let signal = webapp::shutdown_signal(app_handle.clone(), lights_remote.clone());
+    // create the signal handler for safe-shutdown
+    let signal = webapp::shutdown_signal(app_handle.clone());
     // start the redirect server
     let _redirect_task = tokio::spawn(webapp::redirect_http_to_https(signal));
     // Start the server
-    let _webapp_task = tokio::spawn(async move { webapp::start(app_handle.clone(), &lights_remote).await });
-
-    // start the lights task in the main loop this handles the LED driver, which
-    // is a bare pointer and can't be moved (easily... by me... cause I'm not
-    // good with handling pointers in rust)
-    if let Err(e) = lights_controller.start().await {
-        error!("Error with lights controller: {e:?}");
+    let _webapp_task = tokio::spawn(async move { 
+        if let Err(e) = webapp::start(app_handle.clone()).await {
+            error!("Webapp failed with error: {e:?}");
+        }
+    });
+    // Start the lights controller
+    if let Err(e) = lights_controller.run(lights_modes).await {
+        error!("Lights controller failed with error: {e:?}");
     }
- 
 }
 
